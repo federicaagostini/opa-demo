@@ -9,4 +9,4 @@ services:
       - ./examples:/opa-examples
       - ./opa:/etc/opa
     
-    entrypoint: opa run --server /etc/opa --log-level debug -c /etc/opa/config.yaml --addr 0.0.0.0:8181 --watch
+    entrypoint: opa run -s /etc/opa --log-level debug -c /etc/opa/config.yaml --authentication=token --authorization=basic --addr 0.0.0.0:8181 --watch
