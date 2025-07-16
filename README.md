@@ -1,10 +1,6 @@
 # Open Policy Agent demo
 
-Run the docker compose with
-
-```bash
-$ docker compose up -d
-```
+This repo holds examples of policies writte in rego, evaluated with Open Policy Agent.
 
 ## Setup
 
@@ -14,6 +10,12 @@ The next examples require you have a Bearer token issued by the [IAM DEV](https:
 * request to join the `admin` group
 * ask for a JWT using e.g. oidc-agent or [iam-test-client](https://iam-dev.cloud.cnaf.infn.it/iam-test-client)
 * copy your token in the `BT` environment variable.
+
+Run the docker compose with
+
+```bash
+$ docker compose up -d
+```
 
 ## Query OPA
 
@@ -114,7 +116,7 @@ In order to update the data document you need an IAM token with proper `admin` g
 
 Create or overwrite a document with the example methods with
 
-```
+```bash
 $ curl http://localhost:8181/v1/data/authz/methods -H "Authorization: Bearer $BT" -d@examples/methods.json -XPUT
 $ curl http://localhost:8181/v1/data/authz -H "Authorization: Bearer $BT" -s | jq .result
 {
@@ -147,21 +149,10 @@ $ curl http://localhost:8181/v1/data/authz -H "Authorization: Bearer $BT" -s | j
 }
 ```
 
-Patch the document with the example policy
+Patch the data document with the example policy
 
 ```bash
-$ curl http://localhost:8181/v1/data/policies -XPATCH -H "Content-Type: application/json-patch+json" -H "Authorization: B
-earer $BT" -d '[{"op": "add", "path": "-", "value": {
-    "action": "write",
-    "assignee": "urn:example:aai.example.org:group:project-x:role=admin",
-    "constraint": [
-      {
-        "acr": "https://refeds.org/profile/mfa"
-      }
-    ],
-    "target": "https://data.deps.eu/dataset/abc123"
-  }
-}]'
+$ curl http://localhost:8181/v1/data/policies -XPATCH -H "Content-Type: application/json-patch+json" -H "Authorization: Bearer $BT" -d "$(jq -n --slurpfile val examples/policy.json '[{op: "add", path: "-", value: $val[0]}]')"
 $ curl http://localhost:8181/v1/data/policies -H "Authorization: Bearer $BT" -s | jq .result
 [
   {
