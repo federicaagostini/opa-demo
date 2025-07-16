@@ -17,6 +17,15 @@ Build the trustanchor
 docker compose build --no-cache trust
 ```
 
+In order to let Nginx expose an OPA bundle, you need to create the bundle:
+
+```bash
+# Download OPA, see https://www.openpolicyagent.org/docs#1-download-opa
+curl -L -o opa-cli https://openpolicyagent.org/downloads/latest/opa_linux_amd64
+chmod 755 ./opa-cli
+./opa-cli build -b opa --ignore opa/config-dev.yaml -o dep.tar.gz
+```
+
 Run the docker compose with
 
 ```bash
@@ -29,7 +38,9 @@ The docker-compose file contains several services:
   * `/trust-anchors` folder that contains CA certificate/key
   * `/certs` server certificate
   * `/usercerts` user certificate
-* `opa`: opa server available at https://opa.test.example:8181
+* `nginx`: it exposes the OPA bundle at https://nginx.test.example/bundles/dep.tar.gz
+* `opa`: opa server available at https://opa.test.example:8181, it runs the bundle exposed by Nginx
+* `opa-dev`: opa server available at https://opa-dev.test.example:8182, it runs the source code locally
 * `client`: client container used to query OPA.
 
 In order to execute the next examples, enter in the client container
@@ -133,13 +144,17 @@ This endpoint allows a PUT operation to totally replace the module, or create a 
 
 ## Update data
 
+### Development mode
+
+Here is described how to update the data document trough OPA APIs when the server is run from source. We consider it a development mode since the policies change does not persist.
+
 In order to update the data document you need an IAM token with proper `admin` group.
 
 Create or overwrite a document with the example methods with
 
 ```bash
-$ curl https://opa.test.example:8181/v1/data/authz/methods -H "Authorization: Bearer $BT" -d@/opa-examples/methods.json -XPUT
-$ curl https://opa.test.example:8181/v1/data/authz -H "Authorization: Bearer $BT" -s | jq .result
+$ curl https://opa-dev.test.example:8182/v1/data/authz/methods -H "Authorization: Bearer $BT" -d@/opa-examples/methods.json -XPUT
+$ curl https://opa-dev.test.example:8182/v1/data/authz -H "Authorization: Bearer $BT" -s | jq .result
 {
   "groups": [
     "admin"
@@ -158,8 +173,8 @@ $ curl https://opa.test.example:8181/v1/data/authz -H "Authorization: Bearer $BT
 Delete the example methods with
 
 ```bash
-$ curl https://opa.test.example:8181/v1/data/authz/methods -H "Authorization: Bearer $BT" -XDELETE
-$ curl https://opa.test.example:8181/v1/data/authz -H "Authorization: Bearer $BT" -s | jq .result
+$ curl https://opa-dev.test.example:8182/v1/data/authz/methods -H "Authorization: Bearer $BT" -XDELETE
+$ curl https://opa-dev.test.example:8182/v1/data/authz -H "Authorization: Bearer $BT" -s | jq .result
 {
   "groups": [
     "admin"
@@ -173,8 +188,8 @@ $ curl https://opa.test.example:8181/v1/data/authz -H "Authorization: Bearer $BT
 Patch the data document with the example policy
 
 ```bash
-$ curl https://opa.test.example:8181/v1/data/policies -XPATCH -H "Content-Type: application/json-patch+json" -H "Authorization: Bearer $BT" -d "$(jq -n --slurpfile val /opa-examples/policy.json '[{op: "add", path: "-", value: $val[0]}]')"
-$ curl https://opa.test.example:8181/v1/data/policies -H "Authorization: Bearer $BT" -s | jq .result
+$ curl https://opa-dev.test.example:8182/v1/data/policies -XPATCH -H "Content-Type: application/json-patch+json" -H "Authorization: Bearer $BT" -d "$(jq -n --slurpfile val /opa-examples/policy.json '[{op: "add", path: "-", value: $val[0]}]')"
+$ curl https://opa-dev.test.example:8182/v1/data/policies -H "Authorization: Bearer $BT" -s | jq .result
 [
   {
     "action": "read",
@@ -198,3 +213,5 @@ $ curl https://opa.test.example:8181/v1/data/policies -H "Authorization: Bearer 
   }
 ]
 ```
+
+### Update bundle

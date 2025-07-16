@@ -1,9 +1,5 @@
 #!/bin/bash
 
-# SPDX-FileCopyrightText: 2014 Istituto Nazionale di Fisica Nucleare
-#
-# SPDX-License-Identifier: Apache-2.0
-
 set -e
 
 if [ ! -e "openssl.conf" ]; then
@@ -14,7 +10,6 @@ fi
 certs_dir=/certs
 usercerts_dir=/usercerts
 ca_dir=/trust-anchors
-ca_bundle_prefix=/etc/pki
 
 rm -rf "${certs_dir}"
 mkdir -p "${certs_dir}"
@@ -29,8 +24,10 @@ export X509_CERT_DIR="${ca_dir}"
 make_ca.sh
 
 # Create server certificates
-make_cert.sh opa_test_example
-cp igi_test_ca/certs/opa_test_example.* "${certs_dir}"
+for c in opa_test_example opa-dev_test_example nginx_test_example; do
+  make_cert.sh ${c}
+  cp igi_test_ca/certs/${c}.* "${certs_dir}"
+done
 
 chmod 600 "${certs_dir}"/*.cert.pem
 chmod 400 "${certs_dir}"/*.key.pem
@@ -49,7 +46,13 @@ chown 1000:1000 "${usercerts_dir}"/*
 make_crl.sh
 install_ca.sh igi_test_ca "${ca_dir}"
 
-# Add igi-test-ca to system certificates
-ca_bundle="${ca_bundle_prefix}"/tls/certs
+# Create a volume for igi-test-ca + system certificates bundle
+ca_bundle=/etc/pki/tls/certs
 echo -e "\n# igi-test-ca" >> "${ca_bundle}"/ca-bundle.crt
 cat "${ca_dir}"/igi_test_ca.pem >> "${ca_bundle}"/ca-bundle.crt
+
+buffer_bundle=/custom-ssl
+mkdir -p "${buffer_bundle}"
+cp "${ca_bundle}"/ca-bundle.crt "${buffer_bundle}"/ca-bundle.crt
+cp "${ca_bundle}"/ca-bundle.crt "${buffer_bundle}"/ca-certificates.crt
+

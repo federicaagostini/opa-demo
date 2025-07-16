@@ -1,0 +1,19 @@
+services:
+  nginx:
+    url: https://nginx.test.example/
+    credentials:
+      client_tls:
+        cert: /certs/opa_test_example.cert.pem
+        private_key: /certs/opa_test_example.key.pem
+
+bundles:
+  dep:
+    service: nginx
+    resource: bundles/dep.tar.gz
+    persist: true
+    polling:
+      min_delay_seconds: 10
+      max_delay_seconds: 20
+
+default_decision: dep
+persistence_directory: /tmp/opa
