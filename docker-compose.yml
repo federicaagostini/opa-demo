@@ -23,6 +23,9 @@ services:
     ports:
       - "443:443"
 
+    logging:
+      driver: "syslog"
+
     depends_on:
       trust:
         condition: service_completed_successfully
@@ -33,9 +36,10 @@ services:
       - ./dep.tar.gz:/bundles/dep.tar.gz:ro
       - ./nginx/bundle.conf:/etc/nginx/conf.d/default.conf
       - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
-      - ./nginx/setup-and-start.sh:/scripts/setup-and-start.sh:ro
+      - ./scripts/setup-trust-deb.sh:/docker-entrypoint.d/40-setup-trust.sh
 
-    entrypoint: /scripts/setup-and-start.sh
+    healthcheck:
+      test: ["CMD", "curl", "https://nginx.test.example/bundles/dep.tar.gz"]
 
     networks:
       default:
@@ -58,6 +62,9 @@ services:
       - cabundle:/etc/pki
       - certs:/certs
       - ./config.yaml:/etc/opa/config.yaml
+
+    healthcheck:
+      test: ["CMD", "curl", "https://opa.test.example/health"]
     
     command: run --server --log-level debug -c /etc/opa/config.yaml --authentication=token --authorization=basic --tls-ca-cert-file=/trust-anchors/igi_test_ca.pem --tls-cert-file /certs/opa_test_example.cert.pem --tls-private-key-file /certs/opa_test_example.key.pem --addr https://0.0.0.0:8181
 
@@ -79,6 +86,9 @@ services:
     depends_on:
       client:
         condition: service_started
+
+    healthcheck:
+      test: ["CMD", "curl", "https://opa-dev.test.example/health"]
     
     command: run -s /etc/opa --log-level debug -c /etc/opa/config-dev.yaml --authentication=token --authorization=basic --tls-cert-file /certs/opa-dev_test_example.cert.pem --tls-private-key-file /certs/opa-dev_test_example.key.pem --addr https://0.0.0.0:8182 --watch
 
@@ -99,8 +109,12 @@ services:
       - cabundle:/etc/pki
       - custom-ssl:/rh-ssl
       - usercerts:/certs
-      - ./scripts/setup-trust.sh:/scripts/setup-trust.sh
       - ./examples:/opa-examples
       - ./oidc-agent:/home/test/.config/oidc-agent
+      - ./scripts/setup-trust-rh.sh:/docker-entrypoint.d/10-setup-trust.sh
+      - ./scripts/docker-entrypoint.sh:/docker-entrypoint.sh
 
-    entrypoint: /scripts/setup-trust.sh
+    healthcheck:
+      test: ["CMD", "curl", "https://google.com"]
+
+    entrypoint: sleep infinity
