@@ -9,7 +9,7 @@ default allow := {
 
 allow := {"allowed": true} if {
 	payload(input.identity).iss in data.authz.issuers
-	input.method in query_methods
+	#input.method in query_methods
 }
 
 allow := {"allowed": true} if {

@@ -1,12 +1,43 @@
+volumes:
+  trustanchors:
+  cabundle:
+  certs:
+  usercerts:
+
 services:
 
+  trust:
+    build:
+      context: ./trust
+    volumes:
+      - trustanchors:/trust-anchors
+      - cabundle:/etc/pki
+      - certs:/certs
+      - usercerts:/usercerts
+
   opa:
-    image: openpolicyagent/opa:latest
+    image: ${OPA_IMAGE}:${OPA_IMAGE_TAG}
     ports:
       - "8181:8181"
     
     volumes:
-      - ./examples:/opa-examples
+      - cabundle:/etc/pki
+      - certs:/certs
       - ./opa:/etc/opa
     
-    entrypoint: opa run -s /etc/opa --log-level debug -c /etc/opa/config.yaml --authentication=token --authorization=basic --addr 0.0.0.0:8181 --watch
+    entrypoint: opa run -s /etc/opa --log-level debug -c /etc/opa/config.yaml --authentication=token --authorization=basic --tls-cert-file /certs/opa_test_example.cert.pem --tls-private-key-file /certs/opa_test_example.key.pem --addr https://0.0.0.0:8181 --watch
+
+    networks:
+      default:
+        aliases:
+          - opa.test.example
+
+  client:
+    image: ${CLIENT_IMAGE}:${CLIENT_IMAGE_TAG}
+
+    volumes:
+      - cabundle:/etc/pki
+      - usercerts:/certs
+      - ./examples:/opa-examples
+
+    entrypoint: sleep infinity
