@@ -39,5 +39,6 @@ services:
       - cabundle:/etc/pki
       - usercerts:/certs
       - ./examples:/opa-examples
+      - ./oidc-agent:/home/test/.config/oidc-agent
 
     entrypoint: sleep infinity
