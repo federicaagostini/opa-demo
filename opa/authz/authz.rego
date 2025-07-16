@@ -8,14 +8,20 @@ default allow := {
 }
 
 allow := {"allowed": true} if {
-	payload(input.identity).iss in data.authz.issuers
-	#input.method in query_methods
+	_payload(input.identity).iss in data.authz.issuers
+	input.method in _query_methods
 }
 
 allow := {"allowed": true} if {
-	some group in payload(input.identity).groups
+	some group in _payload(input.identity)["wlcg.groups"]
 	group in data.authz.groups
-	input.method in update_methods
+	input.method in _update_methods
+}
+
+allow := {"allowed": true} if {
+	some group in _payload(input.identity).entitlements
+	group in data.authz.groups
+	input.method in _update_methods
 }
 
 allow := {"allowed": false, "reason": reason} if {

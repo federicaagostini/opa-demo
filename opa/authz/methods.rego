@@ -2,13 +2,13 @@ package system.authz
 
 import rego.v1
 
-update_methods := [
+_update_methods := [
 	"PUT",
 	"PATCH",
 	"DELETE"
 ]
 
-query_methods := [
+_query_methods := [
 	"GET",
 	"HEAD",
 	"POST"

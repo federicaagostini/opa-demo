@@ -2,7 +2,7 @@ authz:
   issuers:
   - https://iam-dev.cloud.cnaf.infn.it/
   groups:
-  - admin
+  - /admin
 
 
 policies:
