@@ -33,7 +33,7 @@ services:
     volumes:
       - custom-ssl:/debian-ssl
       - certs:/certs
-      - ./dep.tar.gz:/bundles/dep.tar.gz:ro
+      - ./dep.tar.gz:/usr/share/nginx/html/bundles/dep.tar.gz
       - ./nginx/bundle.conf:/etc/nginx/conf.d/default.conf
       - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
       - ./scripts/setup-trust-deb.sh:/docker-entrypoint.d/40-setup-trust.sh
