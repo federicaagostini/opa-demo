@@ -39,14 +39,14 @@ services:
       - ./scripts/setup-trust-deb.sh:/docker-entrypoint.d/40-setup-trust.sh
 
     healthcheck:
-      test: ["CMD", "curl", "https://nginx.test.example/bundles/dep.tar.gz"]
+      test: ["CMD", "curl", "https://localhost/bundles/dep.tar.gz"]
 
     networks:
       default:
         aliases:
           - nginx.test.example
 
-  opa:
+  opa-pull:
     image: ${OPA_IMAGE}:${OPA_IMAGE_TAG}
     ports:
       - "8181:8181"
@@ -61,19 +61,19 @@ services:
       - trustanchors:/trust-anchors
       - cabundle:/etc/pki
       - certs:/certs
-      - ./config.yaml:/etc/opa/config.yaml
+      - ./conf/config-pull.yaml:/etc/config.yaml
 
     healthcheck:
-      test: ["CMD", "curl", "https://opa.test.example/health"]
+      test: ["CMD", "curl", "https://localhost:8181/health"]
     
-    command: run --server --log-level debug -c /etc/opa/config.yaml --authentication=token --authorization=basic --tls-ca-cert-file=/trust-anchors/igi_test_ca.pem --tls-cert-file /certs/opa_test_example.cert.pem --tls-private-key-file /certs/opa_test_example.key.pem --addr https://0.0.0.0:8181
+    command: run --server --log-level debug -c /etc/config.yaml --authentication=token --authorization=basic --tls-ca-cert-file=/trust-anchors/igi_test_ca.pem --tls-cert-file /certs/opa-pull_test_example.cert.pem --tls-private-key-file /certs/opa-pull_test_example.key.pem --addr https://0.0.0.0:8181
 
     networks:
       default:
         aliases:
-          - opa.test.example
+          - opa-pull.test.example
 
-  opa-dev:
+  opa-push:
     image: ${OPA_IMAGE}:${OPA_IMAGE_TAG}
     ports:
       - "8182:8182"
@@ -82,20 +82,21 @@ services:
       - cabundle:/etc/pki
       - certs:/certs
       - ./opa:/etc/opa
+      - ./conf/config-push.yaml:/etc/config.yaml
 
     depends_on:
       client:
         condition: service_started
 
     healthcheck:
-      test: ["CMD", "curl", "https://opa-dev.test.example/health"]
+      test: ["CMD", "curl", "https://localhost:8182/health"]
     
-    command: run -s /etc/opa --log-level debug -c /etc/opa/config-dev.yaml --authentication=token --authorization=basic --tls-cert-file /certs/opa-dev_test_example.cert.pem --tls-private-key-file /certs/opa-dev_test_example.key.pem --addr https://0.0.0.0:8182 --watch
+    command: run -s /etc/opa --log-level debug -c /etc/config.yaml --authentication=token --authorization=basic --tls-cert-file /certs/opa-push_test_example.cert.pem --tls-private-key-file /certs/opa-push_test_example.key.pem --addr https://0.0.0.0:8182 --watch
 
     networks:
       default:
         aliases:
-          - opa-dev.test.example
+          - opa-push.test.example
 
   client:
     image: ${CLIENT_IMAGE}:${CLIENT_IMAGE_TAG}
