@@ -3,8 +3,8 @@ services:
     url: https://nginx.test.example/
     credentials:
       client_tls:
-        cert: /certs/opa_test_example.cert.pem
-        private_key: /certs/opa_test_example.key.pem
+        cert: /certs/opa-pull_test_example.cert.pem
+        private_key: /certs/opa-pull_test_example.key.pem
 
 bundles:
   dep:
