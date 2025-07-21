@@ -16,4 +16,6 @@ bundles:
       max_delay_seconds: 20
 
 default_decision: dep
+default_authorization_decision: /system/authz/allow
+
 persistence_directory: /tmp/opa

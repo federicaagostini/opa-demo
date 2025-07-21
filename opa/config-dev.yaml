@@ -1,1 +1,8 @@
 default_decision: dep
+
+default_authorization_decision: /system/authz/allow
+
+storage:
+  disk:
+    directory: /tmp/opa
+    auto_create: true
