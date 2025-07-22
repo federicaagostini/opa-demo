@@ -15,7 +15,7 @@ The next examples which showcase read/write access to OPA APIs require you have 
 * ask for a JWT using e.g. oidc-agent or [iam-test-client](https://iam-dev.cloud.cnaf.infn.it/iam-test-client)
 * copy your token in the `BT` environment variable.
 
-Alternatively, the `authz` key of the [data](./opa/data.yaml) file should be updated in order to authorize other issuers/groups.
+Alternatively, the `authz` key of the [data](./opa/policies/data.yaml) file should be updated in order to authorize other issuers/groups.
 
 ### OPA bundle
 
@@ -33,10 +33,10 @@ chmod 755 ./opa-cli
 and create the bundle
 
 ```bash
-./opa-cli build -b opa -o dep.tar.gz
+./opa-cli build -b opa/policies -o dep.tar.gz
 ```
 
-### Build & run
+## Build & run
 
 A [docker-compose](./docker-compose.yml) file available in the root directory contains several services:
 
@@ -79,7 +79,7 @@ docker compose exec client bash
 In this demo we are testing two OPA deployment models:
 
 * `opa-pull` allows to read policies/data asynchronously from an external bundle, hosted by NGINX. The bundle may also be exposed by a GitHub package registry for instance. When reading from a bundle, OPA can act only in pull mode, meaning that the policies cannot be updated trough APIs. It is up to the external service to restrict who can update the bundle (in NGINX you can filter by IP, set a basic authentication, etc. - not implemented here), but in order to modify for instance some data you should then replace the entire bundle. This deployment model is useful when one requires a versioned control over the rego files/data. OPA is configured here to hold a copy of the policies at `/tmp/opa`
-* `opa-push` runs the source code (rego files and data) locally and the policies may be updated from APIs. In this example we allow to update policies/data to users presenting a token issued by the [IAM DEV](https://iam-dev.cloud.cnaf.infn.it/) and containing the `/admin` group. In this OPA mode the policies are hold in memory, meaning that we need to deploy another service which queries OPA APIs and saves the policies if we want to persist them after an OPA restart. This deployment model may be useful when one wants to allow only selected users (e.g. admins) to update the policies for instance trough a dashboard.
+* `opa-push` runs the source code (rego files and data) locally and the policies may be updated from APIs. In this example we allow to update policies/data to users presenting a token issued by the [IAM DEV](https://iam-dev.cloud.cnaf.infn.it/) and containing the `admin` group. In this OPA mode the policies are hold in memory, meaning that we need to deploy another service/script which queries OPA APIs and saves the policies if we want to persist them after an OPA restart. This deployment model may be useful when one wants to allow only selected users (e.g. admins) to update the policies, for instance trough a dashboard.
 
 In both deployment models read access of policies/data is granted to bearer token issued by the [IAM DEV](https://iam-dev.cloud.cnaf.infn.it/) (for more information, see below the _Authorization within OPA_ section).
 
@@ -96,7 +96,7 @@ For instance, list the rego modules (allowed both to `opa-pull` and `opa-push` s
 ```bash
 $ curl https://opa-pull.test.example:8181/v1/policies -H "Authorization: Bearer $BT" -s | jq .result
 [
-    "id": "dep/opa/health/rules.rego",
+    "id": "dep/opa/policies/health/rules.rego",
     "raw": "package system.health\n\ndefault live := true\n\ndefault ready := false\n\nready if {\n\tinput.plugins_ready\n\tinput.plugin_state.bundle == \"OK\"\n}\n",
     "ast": {
       "package": {
@@ -111,9 +111,9 @@ $ curl https://opa-pull.test.example:8181/v1/policies -H "Authorization: Bearer 
 A policy module is identified by its path, so to get a single policy:
 
 ```bash
-$ curl https://opa-pull.test.example:8181/v1/policies/dep/opa/dep/policy.rego -H "Authorization: Bearer $BT" -s | jq .result
+$ curl https://opa-pull.test.example:8181/v1/policies/dep/opa/policies/dep/policy.rego -H "Authorization: Bearer $BT" -s | jq .result
 {
-  "id": "dep/opa/dep/policy.rego",
+  "id": "dep/opa/policies/dep/policy.rego",
   "raw": "package dep\n\nimport rego.v1\n\ndefault allow := false\n\nallow if {\n\tsome policy in data.policies\n\tinput.action == policy.action\n\tinput.resource.id == policy.target\n\tsome constraint in policy.constraint\n\tinput.token.acr == constraint.acr\n\tsome entitlement in input.token.entitlements\n\tentitlement == policy.assignee\n}\n",
   "ast": {
     "package": {
@@ -127,7 +127,7 @@ $ curl https://opa-pull.test.example:8181/v1/policies/dep/opa/dep/policy.rego -H
 
 ### Data API
 
-The data API allows to manage documents in OPA. An OPA document includes an object of the `data.jaml` file. The permitted operations are (for more information, see the [Data API](https://www.openpolicyagent.org/docs/rest-api#data-api) OPA documentation):
+The data API allows to manage documents in OPA. An OPA document includes an object of the `data.jaml` file content. The permitted operations are (for more information, see the [Data API](https://www.openpolicyagent.org/docs/rest-api#data-api) OPA documentation):
 * `GET /v1/data/{path:.+}` to get the `data` object
 * `PUT /v1/data/{path:.+}` to create or entirely update the `data` object
 * `PATCH /v1/data/{path:.+}` to update the `data` object with input encoded as JSON Patch ([RFC 6902](https://datatracker.ietf.org/doc/html/rfc6902))
@@ -223,7 +223,7 @@ $ curl https://opa-push.test.example:8182/v1/data/policies -H "Authorization: Be
 ]
 ```
 
-When one tries to delete a data with OPA pulling from a bundle (`opa-pull` server) he gets an error such as
+When one tries to delete a data with OPA pulling from a bundle (`opa-pull` server) he/she gets an error such as
 
 ```bash
 $ curl https://opa-pull.test.example:8181/v1/data/authz/groups -H "Authorization: Bearer $BT" -XDELETE
@@ -249,8 +249,7 @@ true
 In case we want to get as response the entire `data` object, query OPA with:
 
 ```bash
-$ curl https://opa-pull.test.example:8181/v1/data -d@/opa-examples/input.json -H "Authorization: Bea
-rer $BT" -s | jq .result
+$ curl https://opa-pull.test.example:8181/v1/data -d@/opa-examples/input.json -H "Authorization: Bearer $BT" -s | jq .result
 {
   "authz": {
     "groups": [
@@ -289,12 +288,12 @@ $ curl https://opa-pull.test.example:8181/ -d@/opa-examples/query.json -H "Autho
 
 ### Authorization within OPA
 
-For a secure OPA deployment, one would need to protect OPA APIs with some authorization. OPA allows you to configure an authorization based on TLS client certificates or bearer tokens. Once required, some rego file needs to be written in order to fine tune the desired authorization. In fact, When OPA receives a request, it executes a query against the document defined `data.system.authz.allow` (by default). The user's identity information will be provided in the `input.identity` document together with other useful keys (e.g. `method`, `path`, `headers`, etc.), which can be manipulated with rego. More information are available in the [documentation](www.openpolicyagent.org/docs/security).
+For a secure OPA deployment, one would need to protect OPA APIs. OPA allows you to configure an authorization based on TLS client certificates or bearer tokens. Once required, some rego file needs to be written in order to fine tune the desired authorization. In fact, When OPA receives a request, it executes a query against the document `data.system.authz.allow` (by default). The user's identity information will be provided in the `input.identity` document together with other useful keys (e.g. `method`, `path`, `headers`, etc.), which can be manipulated with rego. More information are available in the [documentation](www.openpolicyagent.org/docs/security).
 
-In this repository, an `allow` rule is contained in the [system.authz](./opa/authz/authz.rego) package, providing
+In this repository, an `allow` rule is contained in the [system.authz](./opa/policies/authz/authz.rego) package, providing
 * read access to bearer tokens issued by the [IAM DEV](https://iam-dev.cloud.cnaf.infn.it/)
-* write access to bearer token issued by the [IAM DEV](https://iam-dev.cloud.cnaf.infn.it/) and with `/admin` group.
-The allowed token issuers and groups are listed in the [data.yaml](./opa/data.yaml) file.
+* write access to bearer token issued by the [IAM DEV](https://iam-dev.cloud.cnaf.infn.it/) and with `admin` group.
+The allowed token issuers and groups are listed in the [data.yaml](./opa/policies/data.yaml) file.
 
 In case you do not present a bearer token, you will get an error accessing all APIs like
 
@@ -318,9 +317,9 @@ $ curl https://opa-push.test.example:8182/v1/data/authz/groups -H "Authorization
 
 ### Health endpoint
 
-OPA exposes an health endpoint, which executes a built-in policy query against the document defined `data.system.health` to verify that the server is operational. Optionally, it may be customize with some rego code to return the liveness/readiness state and other information. OPA will return an empty object with a 200 HTTP status code if the application is live/ready. For more information, see the [documentation](https://www.openpolicyagent.org/docs/rest-api#health-api). 
+OPA exposes an health endpoint, which executes a built-in policy query against the document `data.system.health` to verify that the server is operational. Optionally, it may be customize with some rego code to return the liveness/readiness state and other information. OPA will respond with an empty object and a 200 HTTP status code if the application is live/ready. For more information, see the [documentation](https://www.openpolicyagent.org/docs/rest-api#health-api). 
 
-In this repository, a [`system.health`](./opa/health/rules.rego) package containig live/ready rule as been defined and may be queried with
+In this repository, a [`system.health`](./opa/policies/health/rules.rego) package containig live/ready rule as been defined and may be queried with
 
 ```bash
 $ curl https://opa-pull.test.example:8181/health/live -H "Authorization: Bearer $BT"
