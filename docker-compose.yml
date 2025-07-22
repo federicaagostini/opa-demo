@@ -47,28 +47,28 @@ services:
           - nginx.test.example
 
   opa-pull:
-    image: ${OPA_IMAGE}:${OPA_IMAGE_TAG}
+    build:
+      context: ./opa
     ports:
       - "8181:8181"
 
     depends_on:
       nginx:
         condition: service_started
-      client:
-        condition: service_started
+      trust:
+        condition: service_completed_successfully
     
     volumes:
       - trustanchors:/trust-anchors
-      - cabundle:/etc/pki
+      - custom-ssl:/rh-ssl
+      - ./scripts/setup-trust-rh.sh:/docker-entrypoint.d/40-setup-trust.sh
       - certs:/certs
       - ./opa/conf:/etc/opa/conf
-      #- custom-ssl:/rh-ssl
-      #- ./scripts/setup-trust-rh.sh:/docker-entrypoint.d/40-setup-trust.sh
 
     healthcheck:
       test: ["CMD", "curl", "https://localhost:8181/health"]
     
-    command: run --server --log-level debug -c /etc/opa/conf/config-pull.yaml --authentication=token --authorization=basic --tls-ca-cert-file=/trust-anchors/igi_test_ca.pem --tls-cert-file /certs/opa-pull_test_example.cert.pem --tls-private-key-file /certs/opa-pull_test_example.key.pem --addr https://0.0.0.0:8181
+    command: opa run --server --log-level debug -c /etc/opa/conf/config-pull.yaml --authentication=token --authorization=basic --tls-ca-cert-file=/trust-anchors/igi_test_ca.pem --tls-cert-file /certs/opa-pull_test_example.cert.pem --tls-private-key-file /certs/opa-pull_test_example.key.pem --addr https://0.0.0.0:8181
 
     networks:
       default:
@@ -76,24 +76,25 @@ services:
           - opa-pull.test.example
 
   opa-push:
-    image: ${OPA_IMAGE}:${OPA_IMAGE_TAG}
+    build:
+      context: ./opa
     ports:
       - "8182:8182"
     
     volumes:
-      - cabundle:/etc/pki
+      - custom-ssl:/rh-ssl
+      - ./scripts/setup-trust-rh.sh:/docker-entrypoint.d/40-setup-trust.sh
       - certs:/certs
       - ./opa:/etc/opa
-      #- ./conf/config-push.yaml:/etc/config.yaml
 
     depends_on:
-      client:
-        condition: service_started
+      trust:
+        condition: service_completed_successfully
 
     healthcheck:
       test: ["CMD", "curl", "https://localhost:8182/health"]
     
-    command: run -s /etc/opa/policies --log-level debug -c /etc/opa/conf/config-push.yaml --authentication=token --authorization=basic --tls-cert-file /certs/opa-push_test_example.cert.pem --tls-private-key-file /certs/opa-push_test_example.key.pem --addr https://0.0.0.0:8182 --watch
+    command: opa run -s /etc/opa/policies --log-level debug -c /etc/opa/conf/config-push.yaml --authentication=token --authorization=basic --tls-cert-file /certs/opa-push_test_example.cert.pem --tls-private-key-file /certs/opa-push_test_example.key.pem --addr https://0.0.0.0:8182 --watch
 
     networks:
       default:
@@ -110,12 +111,9 @@ services:
     volumes:
       - trustanchors:/etc/grid-security/certificates
       - cabundle:/etc/pki
-      #- custom-ssl:/rh-ssl
       - usercerts:/certs
       - ./opa/examples:/opa-examples
       - ./oidc-agent:/home/test/.config/oidc-agent
-      #- ./scripts/setup-trust-rh.sh:/docker-entrypoint.d/10-setup-trust.sh
-      #- ./scripts/docker-entrypoint.sh:/docker-entrypoint.sh
 
     healthcheck:
       test: ["CMD", "curl", "https://google.com"]

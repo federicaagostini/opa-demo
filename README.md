@@ -74,7 +74,7 @@ In order to execute the next examples, enter in the client container
 docker compose exec client bash
 ```
 
-## Open Policy Agent
+## OPA demo
 
 In this demo we are testing two OPA deployment models:
 
@@ -319,7 +319,7 @@ $ curl https://opa-push.test.example:8182/v1/data/authz/groups -H "Authorization
 
 OPA exposes an health endpoint, which executes a built-in policy query against the document `data.system.health` to verify that the server is operational. Optionally, it may be customize with some rego code to return the liveness/readiness state and other information. OPA will respond with an empty object and a 200 HTTP status code if the application is live/ready. For more information, see the [documentation](https://www.openpolicyagent.org/docs/rest-api#health-api). 
 
-In this repository, a [`system.health`](./opa/policies/health/rules.rego) package containig live/ready rule as been defined and may be queried with
+In this repository, a [`system.health`](./opa/policies/health/rules.rego) package containing live/ready rule as been defined and may be queried with
 
 ```bash
 $ curl https://opa-pull.test.example:8181/health/live -H "Authorization: Bearer $BT"
