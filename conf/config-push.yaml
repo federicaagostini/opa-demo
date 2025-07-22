@@ -2,6 +2,7 @@ default_decision: dep
 
 default_authorization_decision: /system/authz/allow
 
+# Docs: https://www.openpolicyagent.org/docs/storage
 storage:
   disk:
     directory: /tmp/opa

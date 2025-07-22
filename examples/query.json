@@ -1,0 +1,12 @@
+{
+    "action": "read",
+    "resource": {
+        "id": "https://data.deps.eu/dataset/abc123"
+    },
+    "token": {
+        "acr": "https://refeds.org/profile/mfa",
+        "entitlements": [
+            "urn:example:aai.example.org:group:project-x:role=member"
+        ]
+    }
+}
