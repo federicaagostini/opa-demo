@@ -47,7 +47,7 @@ A [docker-compose](./docker-compose.yml) file available in the root directory co
   * `/usercerts` user certificates
 * `nginx`: it exposes the OPA bundle at https://nginx.test.example/bundles/dep.tar.gz
 * `opa-pull`: OPA server available at https://opa-pull.test.example:8181, it pulls the bundle exposed by NGINX
-* `opa-push`: OPA server available at https://opa-push.test.example:8182, it runs the source code (locally)
+* `opa-push`: OPA server available at https://opa-push.test.example:8182, it runs the policies/data (locally)
 * `client`: client container used to query OPA.
 
 Build the trustanchor with test certificates (it may be redone when certificates expire)
@@ -78,8 +78,8 @@ docker compose exec client bash
 
 In this demo we are testing two OPA deployment models:
 
-* `opa-pull` allows to read policies/data asynchronously from an external bundle, hosted by NGINX. The bundle may also be exposed by a GitHub package registry for instance. When reading from a bundle, OPA can act only in pull mode, meaning that the policies cannot be updated trough APIs. It is up to the external service to restrict who can update the bundle (in NGINX you can filter by IP, set a basic authentication, etc. - not implemented here), but in order to modify for instance some data you should then replace the entire bundle. This deployment model is useful when one requires a versioned control over the rego files/data. OPA is configured here to hold a copy of the policies at `/tmp/opa`
-* `opa-push` runs the source code (rego files and data) locally and the policies may be updated from APIs. In this example we allow to update policies/data to users presenting a token issued by the [IAM DEV](https://iam-dev.cloud.cnaf.infn.it/) and containing the `admin` group. In this OPA mode the policies are hold in memory, meaning that we need to deploy another service/script which queries OPA APIs and saves the policies if we want to persist them after an OPA restart. This deployment model may be useful when one wants to allow only selected users (e.g. admins) to update the policies, for instance trough a dashboard.
+* `opa-pull` allows to read policies/data asynchronously from an external bundle, hosted by NGINX. The bundle may also be exposed by a GitHub package registry for instance. When reading from a bundle, OPA can act only in pull mode, meaning that the policies cannot be updated through APIs. It is up to the external service to restrict who can update the bundle (in NGINX you can filter by IP, set a basic authentication, etc. - not implemented here), but in order to modify for instance some data you should then replace the entire bundle. This deployment model is useful when one requires a versioned control over the rego files/data. OPA is configured here to hold a copy of the policies at `/tmp/opa`
+* `opa-push` runs the source code (rego files and data) locally and the policies may be updated from APIs. In this example we allow to update policies/data to users presenting a token issued by the [IAM DEV](https://iam-dev.cloud.cnaf.infn.it/) and containing the `admin` group. In this OPA mode the policies are hold in memory, meaning that we need to deploy another service/script which queries OPA APIs and saves the policies if we want to persist them after an OPA restart. This deployment model may be useful when one wants to allow only selected users (e.g. admins) to update the policies, for instance through a dashboard.
 
 In both deployment models read access of policies/data is granted to bearer token issued by the [IAM DEV](https://iam-dev.cloud.cnaf.infn.it/) (for more information, see below the _Authorization within OPA_ section).
 
@@ -127,7 +127,7 @@ $ curl https://opa-pull.test.example:8181/v1/policies/dep/opa/policies/dep/polic
 
 ### Data API
 
-The data API allows to manage documents in OPA. An OPA document includes an object of the `data.jaml` file content. The permitted operations are (for more information, see the [Data API](https://www.openpolicyagent.org/docs/rest-api#data-api) OPA documentation):
+The data API allows to manage documents in OPA. An OPA document includes an object of the `data.yaml` file content. The permitted operations are (for more information, see the [Data API](https://www.openpolicyagent.org/docs/rest-api#data-api) OPA documentation):
 * `GET /v1/data/{path:.+}` to get the `data` object
 * `PUT /v1/data/{path:.+}` to create or entirely update the `data` object
 * `PATCH /v1/data/{path:.+}` to update the `data` object with input encoded as JSON Patch ([RFC 6902](https://datatracker.ietf.org/doc/html/rfc6902))
@@ -194,7 +194,7 @@ $ curl https://opa-push.test.example:8182/v1/data/authz/methods -H "Authorizatio
 {}
 ```
 
-If we want to add one element to the array identified by the `policies` key of the data.jaml file, we need to perform the JSON Patch operation as follows
+If we want to add one element to the array identified by the `policies` key of the data.yaml file, we need to perform the JSON Patch operation as follows
 
 ```bash
 $ curl https://opa-push.test.example:8182/v1/data/policies -XPATCH -H "Content-Type: application/json-patch+json" -H "Authorization: Bearer $BT" -d "$(jq -n --slurpfile val /opa-examples/policy.json '[{op: "add", path: "-", value: $val[0]}]')"
