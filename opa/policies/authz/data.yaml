@@ -1,0 +1,5 @@
+issuers:
+- https://iam-dev.cloud.cnaf.infn.it/
+groups:
+- /admin
+- urn:geant:cnafsd:group:admin

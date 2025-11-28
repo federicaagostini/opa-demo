@@ -1,9 +1,3 @@
-authz:
-  issuers:
-  - https://iam-dev.cloud.cnaf.infn.it/
-  groups:
-  - /admin
-
 policies:
 - action: read
   assignee: urn:example:aai.example.org:group:project-x:role=member
