@@ -1,11 +1,9 @@
-package dep
+package ri.rule
 
 import rego.v1
 
-default allow := false
-
 allow if {
-	some policy in data.dep.policies
+    some policy in data.ri.policies
 	input.action == policy.action
 	input.resource.id == policy.target
 	some constraint in policy.constraint

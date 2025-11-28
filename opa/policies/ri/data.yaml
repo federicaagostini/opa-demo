@@ -1,0 +1,6 @@
+policies:
+- action: write
+  assignee: urn:example:aai.example.org:group:project-ri:role=xfer
+  constraint:
+  - acr: https://refeds.org/profile/mfa
+  target: https://data.deps.eu/dataset/abc123
